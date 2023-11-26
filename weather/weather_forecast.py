@@ -4,6 +4,7 @@ import requests_cache
 import pandas as pd
 from retry_requests import retry
 
+
 def fetch_past_weather_data(start_date, end_date, frequency):
     """
     Fetch weather data from Open-Meteo API for the given date range and frequency.
@@ -15,9 +16,9 @@ def fetch_past_weather_data(start_date, end_date, frequency):
     
     returns dataframe
     """
-    cache_session = requests_cache.CachedSession('.cache', expire_after = -1)
-    retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
-    openmeteo = openmeteo_requests.Client(session = retry_session)
+    cache_session = requests_cache.CachedSession('.cache', expire_after=-1)
+    retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
+    openmeteo = openmeteo_requests.Client(session=retry_session)
 
     url = "https://archive-api.open-meteo.com/v1/archive"
     params = {
@@ -28,7 +29,6 @@ def fetch_past_weather_data(start_date, end_date, frequency):
         "timezone": "Europe/Moscow"
     }
 
-    
     # Add parameters based on the frequency
     if frequency == 'hourly':
         params['hourly'] = ["temperature_2m", "relative_humidity_2m"]
@@ -37,10 +37,9 @@ def fetch_past_weather_data(start_date, end_date, frequency):
     else:
         raise ValueError("Frequency must be either 'hourly' or 'daily'.")
 
-
     responses = openmeteo.weather_api(url, params=params)
-    response = responses[0] 
-    
+    response = responses[0]
+
     print(f"Coordinates {response.Latitude()}°E {response.Longitude()}°N")
     print(f"Timezone {response.Timezone()} {response.TimezoneAbbreviation()}")
 
@@ -53,9 +52,8 @@ def fetch_past_weather_data(start_date, end_date, frequency):
             start=pd.to_datetime(hourly.Time(), unit="s"),
             end=pd.to_datetime(hourly.TimeEnd(), unit="s"),
             freq=pd.Timedelta(seconds=hourly.Interval()),
-        )}
-        hourly_data["temperature"] = temperature_2m
-        hourly_data["relative_humidity"] = relative_humidity_2m
+        ), "temperature": temperature_2m, "relative_humidity": relative_humidity_2m}
+
         hourly_data["date"] = hourly_data["date"][1:]
 
         return pd.DataFrame(data=hourly_data)
@@ -70,14 +68,14 @@ def fetch_past_weather_data(start_date, end_date, frequency):
             start=pd.to_datetime(daily.Time(), unit="s"),
             end=pd.to_datetime(daily.TimeEnd(), unit="s"),
             freq='D',  # Daily frequency
-        )}
-        daily_data["temperature_max"] = temperature_2m_max
-        daily_data["temperature_min"] = temperature_2m_min
-        daily_data["temperature_mean"] = temperature_2m_mean
+        ), "temperature_max": temperature_2m_max, "temperature_min": temperature_2m_min,
+            "temperature_mean": temperature_2m_mean}
+
         # Adjust the date to match the data length
         daily_data["date"] = daily_data["date"][1:]
 
         return pd.DataFrame(data=daily_data)
+
 
 def getWeatherForecast(forecast_type="daily", forecast_days=7):
     """
@@ -87,11 +85,11 @@ def getWeatherForecast(forecast_type="daily", forecast_days=7):
     forecast_type (str): Type of forecast to return, "current", "minutely_15", "hourly", or "daily".
     forecast_days (int): Number of days to forecast, could be 1, 3, 7, 14, 16.
     """
-    cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)
-    retry_session = retry(cache_session, retries = 5, backoff_factor = 0.2)
-    openmeteo = openmeteo_requests.Client(session = retry_session)
+    cache_session = requests_cache.CachedSession('.cache', expire_after=3600)
+    retry_session = retry(cache_session, retries=5, backoff_factor=0.2)
+    openmeteo = openmeteo_requests.Client(session=retry_session)
     url = "https://api.open-meteo.com/v1/forecast"
-    
+
     params = {
         "latitude": 41.0138,
         "longitude": 28.9497,
@@ -100,57 +98,60 @@ def getWeatherForecast(forecast_type="daily", forecast_days=7):
         "hourly": ["temperature_2m", "relative_humidity_2m"],
         "daily": ["temperature_2m_max", "temperature_2m_min"],
         "timezone": "Europe/Moscow",
-        "forecast_days": forecast_days 
+        "forecast_days": forecast_days
     }
     responses = openmeteo.weather_api(url, params=params)
-    
-    response = responses[0] 
-    
+
+    response = responses[0]
+
     if forecast_type == "daily":
         daily = response.Daily()
         daily_temperature_2m_max = daily.Variables(0).ValuesAsNumpy()
         daily_temperature_2m_min = daily.Variables(1).ValuesAsNumpy()
 
         daily_data = {"date": pd.date_range(
-            start = pd.to_datetime(daily.Time(), unit = "s"),
-            end = pd.to_datetime(daily.TimeEnd(), unit = "s"),
-            freq = pd.Timedelta(seconds = daily.Interval()),
-        )}
-        daily_data["temperature_2m_max"] = daily_temperature_2m_max
-        daily_data["temperature_2m_min"] = daily_temperature_2m_min
+            start=pd.to_datetime(daily.Time(), unit="s"),
+            end=pd.to_datetime(daily.TimeEnd(), unit="s"),
+            freq=pd.Timedelta(seconds=daily.Interval()),
+        ), "temperature_2m_max": daily_temperature_2m_max, "temperature_2m_min": daily_temperature_2m_min}
+
         daily_data["date"] = daily_data["date"][1:]
-        daily_dataframe = pd.DataFrame(data = daily_data)
+        daily_dataframe = pd.DataFrame(data=daily_data)
+
         return daily_dataframe
+
     elif forecast_type == "hourly":
         hourly = response.Hourly()
         hourly_temperature_2m = hourly.Variables(0).ValuesAsNumpy()
         hourly_relative_humidity_2m = hourly.Variables(1).ValuesAsNumpy()
 
         hourly_data = {"date": pd.date_range(
-            start = pd.to_datetime(hourly.Time(), unit = "s"),
-            end = pd.to_datetime(hourly.TimeEnd(), unit = "s"),
-            freq = pd.Timedelta(seconds = hourly.Interval()),
-        )}
-        hourly_data["temperature_2m"] = hourly_temperature_2m
-        hourly_data["relative_humidity_2m"] = hourly_relative_humidity_2m
+            start=pd.to_datetime(hourly.Time(), unit="s"),
+            end=pd.to_datetime(hourly.TimeEnd(), unit="s"),
+            freq=pd.Timedelta(seconds=hourly.Interval()),
+        ), "temperature_2m": hourly_temperature_2m, "relative_humidity_2m": hourly_relative_humidity_2m}
+
         hourly_data["date"] = hourly_data["date"][1:]
-        hourly_dataframe = pd.DataFrame(data = hourly_data)
+        hourly_dataframe = pd.DataFrame(data=hourly_data)
+
         return hourly_dataframe
+
     elif forecast_type == "minutely_15":
         minutely_15 = response.Minutely15()
         minutely_15_temperature_2m = minutely_15.Variables(0).ValuesAsNumpy()
         minutely_15_relative_humidity_2m = minutely_15.Variables(1).ValuesAsNumpy()
 
         minutely_15_data = {"date": pd.date_range(
-            start = pd.to_datetime(minutely_15.Time(), unit = "s"),
-            end = pd.to_datetime(minutely_15.TimeEnd(), unit = "s"),
-            freq = pd.Timedelta(seconds = minutely_15.Interval()),
-        )}
-        minutely_15_data["temperature_2m"] = minutely_15_temperature_2m
-        minutely_15_data["relative_humidity_2m"] = minutely_15_relative_humidity_2m
+            start=pd.to_datetime(minutely_15.Time(), unit="s"),
+            end=pd.to_datetime(minutely_15.TimeEnd(), unit="s"),
+            freq=pd.Timedelta(seconds=minutely_15.Interval()),
+        ), "temperature_2m": minutely_15_temperature_2m, "relative_humidity_2m": minutely_15_relative_humidity_2m}
+
         minutely_15_data["date"] = minutely_15_data["date"][1:]
-        minutely_15_dataframe = pd.DataFrame(data = minutely_15_data)
+        minutely_15_dataframe = pd.DataFrame(data=minutely_15_data)
+
         return minutely_15_dataframe
+
     elif forecast_type == "current":
         current = response.Current()
         current_data = {
@@ -162,7 +163,3 @@ def getWeatherForecast(forecast_type="daily", forecast_days=7):
         return current_dataframe
     else:
         raise ValueError("Invalid forecast type specified. Choose 'daily', 'hourly', or 'minutely_15'.")
-
-
-a = getWeatherForecast("minutely_15", forecast_days=1)
-print(a)
