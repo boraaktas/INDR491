@@ -4,6 +4,8 @@ import algorithms as alg
 from InputHandler import InputHandler
 from Solution_Rep import Solution_Rep
 
+import os
+
 REAL_DATA_PATH = '../data/KS VERI/KS10_FINAL_DATA.csv'
 OUTPUT_DATA_PATH = '../data/KS VERI/KS10_MH_OUTPUT_DATA.csv'
 
@@ -23,7 +25,7 @@ CH3_GIRIS_SIC_MODEL_PATH = PICKLES_PATH + 'ARIMA_CH3_GIRIS_SIC_MODEL.pkl'
 KS10_UDP_TUKETIM_MODEL_PATH = PICKLES_PATH + 'ARIMA_KS10_UDP_TUKETIM_MODEL.pkl'
 
 START_TIMESTAMP = '2023-10-18 08:00:00'
-NO_TIMESTAMPS = 1
+NO_TIMESTAMPS = 3
 
 # create KS10_REAL_DATA to start
 # The first timestamp of KS10_REAL_DATA is 2023-04-01 00:10:00
@@ -33,6 +35,7 @@ KS10_REAL_DATA['Timestamp'] = pd.to_datetime(KS10_REAL_DATA['Timestamp'])
 
 # create an empty KS10_OUTPUT_DATA
 KS10_OUTPUT_DATA = pd.DataFrame(columns=KS10_REAL_DATA.columns)
+
 KS10_OUTPUT_DATA.to_csv(OUTPUT_DATA_PATH, index=False)
 
 TS = alg.TS
@@ -55,8 +58,6 @@ InputHandler.set_CH_GIRIS_SIC_MODEL([CH1_GIRIS_SIC_MODEL_PATH,
 
 InputHandler.set_KS10_UDP_TUKETIM_MODEL(KS10_UDP_TUKETIM_MODEL_PATH)
 
-TIMESTAMP_LENGTH = 10
-
 # create solution object
 input_h = InputHandler(start_timestamp=START_TIMESTAMP,
                        no_timestamps=NO_TIMESTAMPS,
@@ -65,14 +66,13 @@ input_h = InputHandler(start_timestamp=START_TIMESTAMP,
 sol = Solution_Rep(input_h)
 
 '''TS_result = TS(sol.init, sol.N_List, sol.objective,
-                 tabu_size=1, num_neighbors=2,
-                 time_limit=4, ITER=1000000, print_results=False, print_iteration=False)
+               tabu_size=10, num_neighbors=30,
+               time_limit=60, ITER=1000000, print_results=False, print_iteration=True)'''
 
 SA_result = SA(sol.init, sol.N_List, sol.objective,
-               time_limit=30, ITER=1000000, print_results=False, print_iteration=False)
+               time_limit=30, ITER=1000000, print_results=False, print_iteration=True)
 
 meta_sol = SA_result
 # objective_meta = sol.objective(meta_sol)
 
 sol.excel_write(meta_sol, OUTPUT_DATA_PATH, KS10_REAL_DATA)
-'''

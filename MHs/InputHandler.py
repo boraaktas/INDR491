@@ -40,50 +40,56 @@ class InputHandler:
         start_timestamp = self.start_timestamp
         no_timestamps = self.no_timestamps
 
-        KS10_REAL_DATA = InputHandler.get_REAL_DATA()
+        KS10_LAST_SEEN_DATA = self.get_LAST_SEEN_DATA()
 
         for i in range(no_timestamps):
 
             current_timestamp = pd.to_datetime(start_timestamp) + pd.Timedelta(minutes=5 * i)
 
-            ks10_udp_tuketim = self.predict_KS10_UDP_TUKETIM(current_timestamp,
-                                                             KS10_REAL_DATA)
+            ks10_udp_tuketim = InputHandler.predict_KS10_UDP_TUKETIM(current_timestamp,
+                                                                     KS10_LAST_SEEN_DATA)
 
-            ch1_cikis_sic = self.predict_CHILLER_CIKIS_SIC(1,
-                                                           current_timestamp,
-                                                           KS10_REAL_DATA)
-            ch1_giris_sic = self.predict_CHILLER_GIRIS_SIC(1,
-                                                           current_timestamp,
-                                                           KS10_REAL_DATA)
-            ch2_cikis_sic = self.predict_CHILLER_CIKIS_SIC(2,
-                                                           current_timestamp,
-                                                           KS10_REAL_DATA)
-            ch2_giris_sic = self.predict_CHILLER_GIRIS_SIC(2,
-                                                           current_timestamp,
-                                                           KS10_REAL_DATA)
-            ch3_cikis_sic = self.predict_CHILLER_CIKIS_SIC(3,
-                                                           current_timestamp,
-                                                           KS10_REAL_DATA)
-            ch3_giris_sic = self.predict_CHILLER_GIRIS_SIC(3,
-                                                           current_timestamp,
-                                                           KS10_REAL_DATA)
+            ch1_cikis_sic = InputHandler.predict_CHILLER_CIKIS_SIC(1,
+                                                                   current_timestamp,
+                                                                   KS10_LAST_SEEN_DATA,
+                                                                   pred_start=i,
+                                                                   no_pred=1)
+            ch1_giris_sic = InputHandler.predict_CHILLER_GIRIS_SIC(1,
+                                                                   current_timestamp,
+                                                                   KS10_LAST_SEEN_DATA,
+                                                                   pred_start=i,
+                                                                   no_pred=1)
+            ch2_cikis_sic = InputHandler.predict_CHILLER_CIKIS_SIC(2,
+                                                                   current_timestamp,
+                                                                   KS10_LAST_SEEN_DATA,
+                                                                   pred_start=i,
+                                                                   no_pred=1)
+            ch2_giris_sic = InputHandler.predict_CHILLER_GIRIS_SIC(2,
+                                                                   current_timestamp,
+                                                                   KS10_LAST_SEEN_DATA,
+                                                                   pred_start=i,
+                                                                   no_pred=1)
+            ch3_cikis_sic = InputHandler.predict_CHILLER_CIKIS_SIC(3,
+                                                                   current_timestamp,
+                                                                   KS10_LAST_SEEN_DATA,
+                                                                   pred_start=i,
+                                                                   no_pred=1)
+            ch3_giris_sic = InputHandler.predict_CHILLER_GIRIS_SIC(3,
+                                                                   current_timestamp,
+                                                                   KS10_LAST_SEEN_DATA,
+                                                                   pred_start=i,
+                                                                   no_pred=1)
 
-            outlet_temp = InputHandler.predict_OUTLET_TEMP(current_timestamp,
-                                                           KS10_REAL_DATA)
+            outlet_temp = InputHandler.predict_OUTLET_TEMP(current_timestamp)
 
-            outlet_humidity = InputHandler.predict_OUTLET_HUMIDITY(current_timestamp,
-                                                                   KS10_REAL_DATA)
+            outlet_humidity = InputHandler.predict_OUTLET_HUMIDITY(current_timestamp)
 
             dummies = InputHandler.add_DUMMIES(current_timestamp)
 
-            pue_lag_one_day = InputHandler.add_predict_PUE_lag_one_day(current_timestamp,
-                                                                       KS10_REAL_DATA,
-                                                                       self.KS10_OUTPUT_DATA)
+            pue_lag_one_day = self.add_predict_PUE_lag_one_day(current_timestamp)
 
-            sic_i_set = InputHandler.add_SIC_I_SET(current_timestamp,
-                                                   KS10_REAL_DATA)
-            sic_ii_set = InputHandler.add_SIC_II_SET(current_timestamp,
-                                                     KS10_REAL_DATA)
+            sic_i_set = self.add_SIC_I_SET()
+            sic_ii_set = self.add_SIC_II_SET()
 
             # if current_timestamp is in KS10_OUTPUT_DATA, start with them
             if current_timestamp in self.KS10_OUTPUT_DATA['Timestamp'].values:
@@ -96,17 +102,24 @@ class InputHandler:
                 IV_komp1_hiz = self.KS10_OUTPUT_DATA[self.KS10_OUTPUT_DATA['Timestamp']
                                                      == current_timestamp]['IV_KOMP1_HIZ'].values[0]
 
-            # else start with the speed in 5 minutes ago from start_timestamp
-            else:
+            # else if it is the very first timestamp, start with the last seen data
+            elif current_timestamp not in self.KS10_OUTPUT_DATA['Timestamp'].values and i == 0:
                 old_timestamp = pd.to_datetime(start_timestamp) - pd.Timedelta(minutes=5)
-                I_komp1_hiz = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
-                                             == old_timestamp]['I_KOMP1_HIZ'].values[0]
-                II_komp1_hiz = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
-                                              == old_timestamp]['II_KOMP1_HIZ'].values[0]
-                III_komp1_hiz = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
-                                               == old_timestamp]['III_KOMP1_HIZ'].values[0]
-                IV_komp1_hiz = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
-                                              == old_timestamp]['IV_KOMP1_HIZ'].values[0]
+                I_komp1_hiz = KS10_LAST_SEEN_DATA[KS10_LAST_SEEN_DATA['Timestamp']
+                                                  == old_timestamp]['I_KOMP1_HIZ'].values[0]
+                II_komp1_hiz = KS10_LAST_SEEN_DATA[KS10_LAST_SEEN_DATA['Timestamp']
+                                                   == old_timestamp]['II_KOMP1_HIZ'].values[0]
+                III_komp1_hiz = KS10_LAST_SEEN_DATA[KS10_LAST_SEEN_DATA['Timestamp']
+                                                    == old_timestamp]['III_KOMP1_HIZ'].values[0]
+                IV_komp1_hiz = KS10_LAST_SEEN_DATA[KS10_LAST_SEEN_DATA['Timestamp']
+                                                   == old_timestamp]['IV_KOMP1_HIZ'].values[0]
+
+            # else use the previous timestamp's values
+            else:
+                I_komp1_hiz = self.solutions[-1].I_KOMP1_HIZ
+                II_komp1_hiz = self.solutions[-1].II_KOMP1_HIZ
+                III_komp1_hiz = self.solutions[-1].III_KOMP1_HIZ
+                IV_komp1_hiz = self.solutions[-1].IV_KOMP1_HIZ
 
             # create solution object
             solution = Solution_Object(timestamp=current_timestamp,
@@ -133,19 +146,17 @@ class InputHandler:
 
             self.solutions.append(solution)
 
-    def predict_KS10_UDP_TUKETIM(self,
-                                 current_timestamp: pd.Timestamp,
-                                 KS10_REAL_DATA: pd.DataFrame,
+    @staticmethod
+    def predict_KS10_UDP_TUKETIM(current_timestamp: pd.Timestamp,
+                                 KS10_LAST_SEEN_DATA: pd.DataFrame,
                                  pred_start=0,
                                  no_pred=1) -> float:
-
-        if current_timestamp == self.start_timestamp:
-            return KS10_REAL_DATA[KS10_REAL_DATA['Timestamp'] == current_timestamp]['KS10_UDP_TUKETIM'].values[0]
 
         if no_pred < 1:
             raise ValueError('no_pred must be greater than 1')
 
-        data = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp'] < current_timestamp]['KS10_UDP_TUKETIM']
+        data = KS10_LAST_SEEN_DATA[KS10_LAST_SEEN_DATA['Timestamp'] < current_timestamp
+                                   ]['KS10_UDP_TUKETIM']
 
         preds = []
 
@@ -158,21 +169,18 @@ class InputHandler:
 
         return preds[0]
 
-    def predict_CHILLER_CIKIS_SIC(self,
-                                  CHILLER_NUMBER: int,
+    @staticmethod
+    def predict_CHILLER_CIKIS_SIC(CHILLER_NUMBER: int,
                                   current_timestamp: pd.Timestamp,
-                                  KS10_REAL_DATA: pd.DataFrame,
+                                  KS10_LAST_SEEN_DATA: pd.DataFrame,
                                   pred_start=0,
                                   no_pred=1) -> float:
-
-        if current_timestamp == self.start_timestamp:
-            return KS10_REAL_DATA[KS10_REAL_DATA['Timestamp'] == current_timestamp][(f'CH{CHILLER_NUMBER}'
-                                                                                     f'_CIKIS_SIC')].values[0]
 
         if no_pred < 1:
             raise ValueError('no_pred must be greater than 1')
 
-        data = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp'] < current_timestamp][f'CH{CHILLER_NUMBER}_CIKIS_SIC']
+        data = KS10_LAST_SEEN_DATA[KS10_LAST_SEEN_DATA['Timestamp'] < current_timestamp
+                                   ][f'CH{CHILLER_NUMBER}_CIKIS_SIC']
 
         preds = []
 
@@ -183,21 +191,18 @@ class InputHandler:
 
         return preds[0]
 
-    def predict_CHILLER_GIRIS_SIC(self,
-                                  CHILLER_NUMBER: int,
+    @staticmethod
+    def predict_CHILLER_GIRIS_SIC(CHILLER_NUMBER: int,
                                   current_timestamp: pd.Timestamp,
-                                  KS10_REAL_DATA: pd.DataFrame,
+                                  KS10_LAST_SEEN_DATA: pd.DataFrame,
                                   pred_start=0,
                                   no_pred=1) -> float:
-
-        if current_timestamp == self.start_timestamp:
-            return KS10_REAL_DATA[KS10_REAL_DATA['Timestamp'] == current_timestamp][(f'CH{CHILLER_NUMBER}'
-                                                                                     f'_GIRIS_SIC')].values[0]
 
         if no_pred < 1:
             raise ValueError('no_pred must be greater than 1')
 
-        data = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp'] < current_timestamp][f'CH{CHILLER_NUMBER}_GIRIS_SIC']
+        data = KS10_LAST_SEEN_DATA[KS10_LAST_SEEN_DATA['Timestamp'] < current_timestamp
+                                   ][f'CH{CHILLER_NUMBER}_GIRIS_SIC']
 
         preds = []
 
@@ -209,15 +214,19 @@ class InputHandler:
         return preds[0]
 
     @staticmethod
-    def predict_OUTLET_TEMP(current_timestamp: pd.Timestamp,
-                            KS10_REAL_DATA: pd.DataFrame) -> float:
+    def predict_OUTLET_TEMP(current_timestamp: pd.Timestamp) -> float:
+
+        KS10_REAL_DATA = InputHandler.get_REAL_DATA()
+
         outlet_temp = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
                                      == current_timestamp]['OUTLET_TEMP'].values[0]
         return outlet_temp
 
     @staticmethod
-    def predict_OUTLET_HUMIDITY(current_timestamp: pd.Timestamp,
-                                KS10_REAL_DATA: pd.DataFrame) -> float:
+    def predict_OUTLET_HUMIDITY(current_timestamp: pd.Timestamp) -> float:
+
+        KS10_REAL_DATA = InputHandler.get_REAL_DATA()
+
         outlet_humidity = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
                                          == current_timestamp]['OUTLET_HUMIDITY'].values[0]
         return outlet_humidity
@@ -246,10 +255,12 @@ class InputHandler:
 
         return dummies
 
-    @staticmethod
-    def add_predict_PUE_lag_one_day(current_timestamp: pd.Timestamp,
-                                    KS10_REAL_DATA: pd.DataFrame,
-                                    KS10_OUTPUT_DATA: pd.DataFrame) -> float:
+    def add_predict_PUE_lag_one_day(self,
+                                    current_timestamp: pd.Timestamp) -> float:
+
+        KS10_REAL_DATA = InputHandler.get_REAL_DATA()
+        KS10_OUTPUT_DATA = self.KS10_OUTPUT_DATA
+
         # if lag_one_day_timestamp is in KS10_OUTPUT_DATA, use PUE from KS10_OUTPUT_DATA
         # else use PUE from KS10_REAL_DATA
         lag_one_day_timestamp = current_timestamp - pd.Timedelta(days=1)
@@ -263,24 +274,25 @@ class InputHandler:
 
         return pue_lag_one_day
 
-    @staticmethod
-    def add_SIC_I_SET(current_timestamp: pd.Timestamp,
-                      KS10_REAL_DATA: pd.DataFrame) -> float:
+    def add_SIC_I_SET(self) -> float:
+
+        KS10_REAL_DATA = InputHandler.get_REAL_DATA()
 
         I_SIC_SET = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
-                                   == current_timestamp]['I_SIC_SET'].values[0]
+                                   == self.start_timestamp]['I_SIC_SET'].values[0]
         II_SIC_SET = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
-                                    == current_timestamp]['II_SIC_SET'].values[0]
+                                    == self.start_timestamp]['II_SIC_SET'].values[0]
 
         return (I_SIC_SET + II_SIC_SET) / 2
 
-    @staticmethod
-    def add_SIC_II_SET(current_timestamp: pd.Timestamp,
-                       KS10_REAL_DATA: pd.DataFrame) -> float:
+    def add_SIC_II_SET(self) -> float:
+
+        KS10_REAL_DATA = InputHandler.get_REAL_DATA()
+
         III_SIC_SET = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
-                                     == current_timestamp]['III_SIC_SET'].values[0]
+                                     == self.start_timestamp]['III_SIC_SET'].values[0]
         IV_SIC_SET = KS10_REAL_DATA[KS10_REAL_DATA['Timestamp']
-                                    == current_timestamp]['IV_SIC_SET'].values[0]
+                                    == self.start_timestamp]['IV_SIC_SET'].values[0]
 
         return (III_SIC_SET + IV_SIC_SET) / 2
 
@@ -358,6 +370,10 @@ class InputHandler:
     def get_REAL_DATA(cls) -> pd.DataFrame:
         return cls.__KS10_REAL_DATA__
 
+    def get_LAST_SEEN_DATA(self) -> pd.DataFrame:
+        return InputHandler.get_REAL_DATA()[InputHandler.get_REAL_DATA()['Timestamp']
+                                            < self.start_timestamp]
+
     @classmethod
     def get_PUE_MODEL(cls) -> joblib:
         return cls.__PUE_MODEL__
@@ -405,4 +421,3 @@ class InputHandler:
     @classmethod
     def get_KS10_UDP_TUKETIM_MODEL(cls) -> joblib:
         return cls.__KS10_UDP_TUKETIM_MODEL__
-
